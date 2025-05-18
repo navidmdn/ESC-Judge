@@ -1,0 +1,19 @@
+{
+  "Exploration": {
+    "Empathic Understanding": "Evaluate how well the model conveys a deep understanding of the user's inner emotional world, using reflections of feelings and alignment with the client's subjective experience.",
+    "Encouragement of Emotional Expression": "Determine if the model invites, explores, and validates emotional experiences, particularly helping the user articulate and tolerate difficult or painful feelings.",
+    "Exploration of Thoughts and Narratives": "Judge how well the model facilitates discussion of the user's thoughts, beliefs, and personal stories through open-ended questions and thoughtful restatements."
+  },
+  "Insight": {
+    "Establish a Trusting Foundation": "The supporter first creates rapport and safety through empathic listening before moving to deeper insights or interpretations.",
+    "Assess Readiness for Insight": "Notice cues such as confusion, ambivalence, or explicit requests to probe deeper. Avoid pushing insight if the user seems unwilling or unready.",
+    "Use Gentle Challenges and Interpretations": "Offer new perspectives tentatively and encourage the user to explore contradictions or underlying reasons for feelings and behaviors, rather than dictating answers.",
+    "Process the Relationship Directly if Relevant": "Address any tension or misunderstandings in the conversation. The supporter might inquire how the user feels about the interaction or carefully disclose personal reactions in a caring, non-defensive way."
+  },
+  "Action": {
+    "Clarify the Desired Change": "Begin by inviting the person to explore what exact behavior, situation, or decision they want to address. Rather than jumping straight into advice, ensure they articulate a specific goal or area of focus to give structure to the action work.",
+    "Ensure Readiness and Collaboration": "Before suggesting any steps, check whether the individual feels truly ready and motivated to change. Emphasize a collaborative stance—co-create action plans rather than impose them, respecting their self-determination and unique context.",
+    "Brainstorm and Evaluate Options": "Help them generate multiple ideas and weigh each option against their values, needs, and potential obstacles. Encourage them to imagine practical steps and consider both benefits and challenges of different actions, especially in terms of feasibility.",
+    "Provide Ongoing Support and Adaptation": "Recognize that action steps often need refinement. Encourage them to reflect on results, celebrate small wins, and troubleshoot difficulties. Stay empathic and flexible—if something fails, return to exploration, adjust the plan, and maintain a caring stance."
+  }
+}

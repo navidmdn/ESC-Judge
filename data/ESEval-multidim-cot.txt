@@ -1,0 +1,30 @@
+Your task is to judge and compare two emotional support models on a specific dimension.
+
+# Input
+
+Here are two conversations in which two models act as supporter.
+
+Conversation 1 (Support Model A)
+{conversation_a}
+
+Conversation 2 (Support Model B)
+{conversation_b}
+
+
+# Criteria
+
+Compare two emotional support models based on their ability to facilitate the following capability:
+
+criteria: {criteria}
+description: {criteria_description}
+
+
+# Output Format:
+
+## Reasoning
+
+Step by step analyze and compare the two chats according to the criteria and assess which model performs better on that dimension
+
+## Verdict
+
+<Model A/Model B/Tie>

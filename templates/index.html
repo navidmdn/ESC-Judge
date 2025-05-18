@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Simulation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        #chat-container {
+            width: 60%;
+            max-width: 600px;
+            height: 70vh;
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            margin: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .supporter {
+            background-color: #d1e7fd;
+            align-self: flex-start;
+        }
+        .seeker {
+            background-color: #fdd1d1;
+            align-self: flex-end;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            border: none;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .message-content {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <h2>Chat Simulation</h2>
+    <div id="chat-container"></div>
+    <button onclick="startSimulation()">Start Simulation</button>
+    <p id="statusMessage"></p>
+
+    <script>
+        var socket = io();
+
+        function startSimulation() {
+            socket.emit('start_simulation');
+        }
+
+        socket.on("simulation_error", function(data) {
+            document.getElementById("statusMessage").innerText = "Error: " + data.message;
+        });
+        socket.on('new_message', function(data) {
+            let chatContainer = document.getElementById("chat-container");
+            let msgDiv = document.createElement("div");
+            msgDiv.classList.add("message", data.role);
+
+            // Convert Markdown to HTML using marked.js
+            let formattedMessage = marked.parse(data.content);
+
+            msgDiv.innerHTML = `<strong>${data.role.toUpperCase()}:</strong> <div class="message-content">${formattedMessage}</div>`;
+            chatContainer.appendChild(msgDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        });
+    </script>
+</body>
+</html>

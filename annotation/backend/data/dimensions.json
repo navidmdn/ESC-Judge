@@ -1,0 +1,30 @@
+{
+  "dimensions": [
+    {
+      "name": "Exploration",
+      "subcategories": [
+        "Empathic Understanding",
+        "Encouragement of Emotional Expression",
+        "Exploration of Thoughts and Narratives"
+      ]
+    },
+    {
+      "name": "Insight",
+      "subcategories": [
+        "Establish a Trusting Foundation",
+        "Assess Readiness for Insight",
+        "Use Gentle Challenges and Interpretations",
+        "Process the Relationship Directly if Relevant"
+      ]
+    },
+    {
+      "name": "Action",
+      "subcategories": [
+        "Clarify the Desired Change",
+        "Ensure Readiness and Collaboration",
+        "Brainstorm and Evaluate Options",
+        "Provide Ongoing Support and Adaptation"
+      ]
+    }
+  ]
+}

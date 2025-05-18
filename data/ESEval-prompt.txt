@@ -1,0 +1,96 @@
+Evaluation of Emotional Support Agents Using Clara Hill’s Framework
+
+Task Overview:
+Evaluate two emotional support models based on their ability to facilitate meaningful emotional support conversations following Clara Hill’s framework of Exploration, Insight, and Action. Each model engages in a conversation with a help-seeker, and their responses are analyzed based on how well they facilitate emotional processing, self-reflection, and action planning.
+
+Input Format:
+You will receive two conversations, structured as follows:
+
+Conversation 1 (Support Model A)
+[supporter]: <Support Model A’s responses>
+[seeker]: <Help-seeker’s responses>
+
+Conversation 2 (Support Model B)
+[supporter]: <Support Model B’s responses>
+[seeker]: <Help-seeker’s responses>
+
+Evaluation Criteria (Based on Clara Hill’s Framework):
+Each model is assessed on three key dimensions, with scores ranging from 1 (poor) to 10 (excellent).
+
+1. Exploration (Encouraging Self-Expression & Emotional Processing)
+   - Does the supporter encourage the seeker to explore their thoughts and emotions?
+   - Are they actively listening, validating emotions, and prompting deeper discussion?
+   - Do they use open-ended questions to foster self-reflection?
+
+2. Insight (Helping the Seeker Gain Self-Understanding)
+   - Does the supporter help the seeker reframe their challenges or see new perspectives?
+   - Are they guiding the seeker toward recognizing underlying thoughts, beliefs, or patterns?
+   - Do they gently challenge assumptions in a supportive way?
+
+3. Action (Encouraging Meaningful Steps & Change)
+   - Does the supporter provide actionable strategies without overwhelming the seeker?
+   - Are they guiding the seeker toward defining concrete steps based on their values?
+   - Do they encourage the seeker to take ownership of their action plan?
+
+Output Format: Evaluation Report
+The output should contain:
+1. Scores for each model (on a scale of 1-10 for each dimension).
+2. Detailed feedback on strengths and areas for improvement.
+3. Overall summary comparing the two models.
+
+Example Output Format:
+
+Evaluation of Emotional Support Agents
+
+Support Model A
+Exploration: [Score]/10  
+[Detailed analysis of how well the supporter encouraged self-expression, emotional exploration, and validation.]
+
+Insight: [Score]/10  
+[Detailed analysis of how well the supporter guided the seeker toward self-understanding and new perspectives.]
+
+Action: [Score]/10  
+[Detailed analysis of how well the supporter facilitated meaningful steps for change.]
+
+Overall Score: [Average of the three scores]
+
+Strengths:
+- [List of key strengths]
+  
+Areas for Improvement:
+- [List of key areas where the model could improve]
+
+---
+
+Support Model B
+Exploration: [Score]/10  
+[Detailed analysis of how well the supporter encouraged self-expression, emotional exploration, and validation.]
+
+Insight: [Score]/10  
+[Detailed analysis of how well the supporter guided the seeker toward self-understanding and new perspectives.]
+
+Action: [Score]/10  
+[Detailed analysis of how well the supporter facilitated meaningful steps for change.]
+
+Overall Score: [Average of the three scores]
+
+Strengths:
+- [List of key strengths]
+  
+Areas for Improvement:
+- [List of key areas where the model could improve]
+
+---
+
+Overall Winner: [The better model overall]
+
+---
+
+Final Notes
+- Which model provided more effective emotional support and why?
+- Specific recommendations for improvement for both models.
+- Which model aligned more closely with Clara Hill’s framework?
+- Use concise yet detailed explanations when scoring.
+- Provide clear and actionable feedback for improvement.
+- Maintain objectivity by focusing on conversation quality rather than assumptions about the model.
+- If one model significantly outperforms the other, highlight why.

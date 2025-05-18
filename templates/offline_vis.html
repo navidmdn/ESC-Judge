@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversation Viewer</title>
+
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .chat-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 15px;
+            /*border: 1px solid #ddd;*/
+            /*border-radius: 8px;*/
+            background: #ffffff;
+        }
+        select, button {
+            margin-top: 10px;
+            padding: 8px;
+        }
+        .chat {
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 8px;
+            max-width: 80%;
+            clear: both;
+            display: inline-block;
+        }
+        .seeker {
+            background-color: #e0f7fa;
+            border: 1px solid #81d4fa;
+            text-align: left;
+            float: left;
+        }
+        .helper {
+            background-color: #f1f8e9;
+            border: 1px solid #c5e1a5;
+            text-align: left;
+            float: left;
+        }
+        .clearfix {
+            clear: both;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Conversation Viewer</h2>
+
+    <label for="transcript">Choose a conversation:</label>
+    <select id="transcript">
+        {% for transcript in transcripts %}
+        <option value="{{ transcript }}">{{ transcript }}</option>
+        {% endfor %}
+    </select>
+    <button onclick="loadTranscript()">Load Conversation</button>
+
+    <div id="chat-content" class="chat-container"></div>
+
+    <script>
+        function loadTranscript() {
+            var filename = document.getElementById("transcript").value;
+
+            fetch("/get_transcript", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ filename: filename })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("chat-content").innerHTML = marked.parse(data.content);
+            })
+            .catch(error => console.error("Error loading transcript:", error));
+        }
+    </script>
+
+</body>
+</html>

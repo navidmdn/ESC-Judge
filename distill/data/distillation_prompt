@@ -1,0 +1,22 @@
+Compare the following two conversations between a person seeking emotional support with two different emotional support agents.
+Judge which agent performs better on "{topic}" or if they tie.
+
+Explanation of criteria:
+{description}
+
+### Conversation with Model A:
+{conv_a}
+
+
+### Conversation with Model B:
+{conv_b}
+
+
+[output format]
+## Reasoning
+
+Step by step analyze and compare the two chats according to the criteria and assess which model performs better on that dimension
+
+## Verdict
+
+<Model A/Model B/Tie>
