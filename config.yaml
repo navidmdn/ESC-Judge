@@ -1,19 +1,24 @@
 # ─── Provider (the model under test) ───────────────────────────
 provider_role: "data/prompts/supporter_social_companion.txt"
-opening_line: "Hey! how's it going?"
+opening_line: "Hey! I am Pepper, your social Companion. What's your name?"
 
 # ─── Seeker (simulated help-seeker, cloud) ─────────────────────
+# Any OpenAI-compatible provider works. Set base_url and api_key_env
+# for your provider. The actual key goes in .env, never here.
 seeker:
   model: "gpt-4o-mini"
+  base_url: "https://api.openai.com/v1"  # change for other providers
+  api_key_env: "OPENAI_API_KEY" # name of the env var in .env holding the key
   temperature: 0.8
   max_tokens: 512
   template_file: "data/prompts/seeker_template.txt"
 
 # ─── Scenarios ─────────────────────────────────────────────────
 scenarios_file: "data/roles-v1.json"
+n_scenarios: 3            # use first N personas from scenarios_file (null = all)
 
 # ─── Generation settings ──────────────────────────────────────
-n_turns: 14
+n_turns: 10
 n_repetitions: 1
 output_dir: "transcripts"
 

@@ -31,7 +31,8 @@ def simulate(supporter_adapter, seeker_adapter,
              max_tokens: int = 512,
              stt_estimate_s: float = 0.0,
              tts_estimate_s: float = 0.0,
-             opening_line: str = "Hey! how's it going?") -> Dict:
+             opening_line: str = "Hey! how's it going?",
+             seeker_seed: Optional[int] = None) -> Dict:
     """
     Run one multi-turn conversation between supporter (local) and seeker (cloud).
     Returns turns (clean text), llm_calls and pipeline (supporter-only metrics).
@@ -65,7 +66,8 @@ def simulate(supporter_adapter, seeker_adapter,
         if cur_speaker == "seeker":
             messages = build_messages(seeker_system_prompt, seeker_history)
             result = seeker_adapter.chat(
-                messages, temperature=seeker_temperature, max_tokens=max_tokens
+                messages, temperature=seeker_temperature, max_tokens=max_tokens,
+                seed=seeker_seed
             )
         else:
             messages = build_messages(supporter_system_prompt, supporter_history)
@@ -146,8 +148,11 @@ def run_generation(
     model_path: str,
     server_binary: str,
     seeker_model_name: str = "gpt-4o-mini",
+    seeker_base_url: str = "https://api.openai.com/v1",
+    seeker_api_key_env: str = "OPENAI_API_KEY",
     n_turns: int = 14,
     n_repetitions: int = 3,
+    n_scenarios: Optional[int] = None,
     supporter_temperature: float = 0.7,
     seeker_temperature: float = 0.8,
     max_tokens: int = 512,
@@ -167,14 +172,15 @@ def run_generation(
     """
     os.makedirs(output_dir, exist_ok=True)
 
-    # Load scenarios (one JSON object per line)
+    # Load scenarios (one JSON object per line), capped at n_scenarios
     scenarios = []
     with open(scenarios_file) as f:
         for line in f:
             scenarios.append(json.loads(line.strip()))
+    if n_scenarios is not None:
+        scenarios = scenarios[:n_scenarios]
 
 
-    
     supporter_system_prompt = load_prompt_template(supporter_system_prompt_file)
     seeker_template = load_prompt_template(seeker_template_file)
 
@@ -189,7 +195,11 @@ def run_generation(
     )
     supporter.start()
 
-    seeker = CloudAdapter(model_name=seeker_model_name)
+    seeker = CloudAdapter(
+        model_name=seeker_model_name,
+        base_url=seeker_base_url,
+        api_key_env=seeker_api_key_env,
+    )
 
     completed = 0
     skipped = 0
@@ -222,6 +232,7 @@ def run_generation(
                     stt_estimate_s=stt_estimate_s,
                     tts_estimate_s=tts_estimate_s,
                     opening_line=opening_line,
+                    seeker_seed=rep,
                 )
 
                 output = {
@@ -246,6 +257,7 @@ def run_generation(
                     "seeker": {
                         "model": seeker_model_name,
                         "temperature": seeker_temperature,
+                        "seed": rep,
                     },
                     "provider_role": supporter_system_prompt_file,
                     "n_turns": n_turns,
@@ -287,12 +299,15 @@ def main(config_path: str = "config.yaml"):
             supporter_system_prompt_file=cfg["provider_role"],
             seeker_template_file=cfg["seeker"]["template_file"],
             seeker_model_name=cfg["seeker"]["model"],
+            seeker_base_url=cfg["seeker"].get("base_url"),
+            seeker_api_key_env=cfg["seeker"].get("api_key_env", "OPENAI_API_KEY"),
             seeker_temperature=cfg["seeker"]["temperature"],
             config_id=candidate["config_id"],
             model_path=candidate["model_path"],
             server_binary=os.path.expanduser(candidate["server_binary"]),
             n_turns=cfg["n_turns"],
             n_repetitions=cfg["n_repetitions"],
+            n_scenarios=cfg.get("n_scenarios"),
             supporter_temperature=candidate["temperature"],
             max_tokens=candidate["max_tokens"],
             n_ctx=candidate["n_ctx"],

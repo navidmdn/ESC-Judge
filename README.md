@@ -24,6 +24,8 @@ The candidate configurations are local LLM setups that passed Stage 1 feasibilit
 | Hardcoded prompts | File-based, config-referenced prompts |
 | No resumability | Skips already-completed conversations |
 | Flat text output | Structured JSON with per-turn metrics |
+| Seeker hardcoded to OpenAI | Provider-agnostic seeker (any OpenAI-compatible API) |
+| All 100 scenarios, no determinism controls | Configurable scenario cap, seeker seed per repetition |
 
 ## Scoring dimensions
 
@@ -43,17 +45,22 @@ conda activate esc-judge
 pip install requests openai python-dotenv pyyaml fire jupyter
 ```
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root with your provider's API key. The variable name must match the `api_key_env` field in `config.yaml`:
+
 ```
-OPENAI_API_KEY=your-key-here
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GROQ_API_KEY=gsk_...
 ```
+
+Only the key referenced by your config needs to be present.
 
 ## Project structure
 
 ```
 adapters/
   local_llama.py          # Candidate adapter — starts llama-server, talks via HTTP
-  cloud.py                # Cloud adapter (seeker/judge) — OpenAI API
+  cloud.py                # Cloud adapter (seeker/judge) — any OpenAI-compatible provider
 run_generation.py         # Generation pipeline — simulate, run, resume
 config.yaml               # Central config — candidates, seeker, prompts, estimates
 data/
@@ -82,11 +89,46 @@ The pipeline reads `config.yaml`, starts each candidate's llama-server sequentia
 All settings live in `config.yaml`:
 
 - **`provider_role`** — path to the supporter system prompt file
-- **`seeker`** — cloud model name, temperature, prompt template path
+- **`seeker`** — cloud model settings:
+  - `model` — model name (e.g., `gpt-4o-mini`, `claude-sonnet-4-20250514`)
+  - `base_url` — provider endpoint (default: `https://api.openai.com/v1`)
+  - `api_key_env` — name of the env var in `.env` holding the API key (e.g., `OPENAI_API_KEY`)
+  - `temperature`, `max_tokens`, `template_file`
 - **`candidates`** — list of model configs (GGUF path, server binary, GPU layers, context size, temperature, extra args, port)
 - **`n_turns`** — conversation length (supporter + seeker turns)
 - **`n_repetitions`** — runs per scenario for variance estimation
+- **`n_scenarios`** — number of personas to use from the scenarios file (default: 25, `null` = all)
 - **`pipeline_estimates`** — STT/TTS latency estimates for end-to-end latency calculation
+
+### Switching seeker providers
+
+Change `model`, `base_url`, and `api_key_env` in the seeker section. Examples:
+
+```yaml
+# OpenAI (default)
+seeker:
+  model: "gpt-4o-mini"
+  base_url: "https://api.openai.com/v1"
+  api_key_env: "OPENAI_API_KEY"
+
+# Anthropic
+seeker:
+  model: "claude-sonnet-4-20250514"
+  base_url: "https://api.anthropic.com/v1/"
+  api_key_env: "ANTHROPIC_API_KEY"
+
+# Groq
+seeker:
+  model: "llama-3.1-70b-versatile"
+  base_url: "https://api.groq.com/openai/v1"
+  api_key_env: "GROQ_API_KEY"
+```
+
+Then add the corresponding key to your `.env` file.
+
+### Determinism
+
+Each repetition index (0, 1, 2…) is passed as a `seed` to the seeker API. All candidates sharing the same repetition number get the same seeker behavior, isolating variation to the supporter model. The supporter is left unseeded so natural variance across repetitions is preserved.
 
 ### Output format
 
@@ -104,7 +146,7 @@ Each transcript JSON contains:
 
 - A llama.cpp build with `llama-server`
 - GGUF model files in `models/`
-- OpenAI API key in `.env` (for the seeker and judge)
+- An API key for your chosen seeker provider in `.env`
 
 ## Citation
 

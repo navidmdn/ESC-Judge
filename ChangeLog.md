@@ -86,3 +86,34 @@ The upstream repo's `langchain_persona_based_chat.py` generates conversations us
 - **Safety checks on adapter startup**:
   - Port-busy detection before launching llama-server (prevents silently talking to a stale server)
   - Model identity verification via `/v1/models` after startup (confirms the correct GGUF is loaded)
+
+  ---
+
+## Step 3: Scenario determinism and provider-agnostic seeker
+
+**Date:** 2025-07-24
+
+### What changed
+
+| Action | File | Description |
+|--------|------|-------------|
+| Modified | `config.yaml` | Added `n_scenarios`, seeker `base_url` and `api_key_env` fields |
+| Modified | `adapters/cloud.py` | Provider-agnostic auth via `api_key_env`; optional `seed` parameter |
+| Modified | `run_generation.py` | Scenario cap (`n_scenarios`), seeker seed per repetition, provider config passthrough |
+
+### Why
+
+The upstream repo runs all 100 personas with no randomness controls and is hardcoded to OpenAI. We need: (1) a configurable scenario subset to control cost and runtime, (2) seeker seed for reproducibility across candidates, and (3) the ability for researchers to use any OpenAI-compatible LLM provider as the seeker.
+
+### How it was done upstream
+
+- Iterates all personas in file order, no option to limit
+- No seed or determinism controls anywhere
+- Seeker is hardcoded to OpenAI's API with `OPENAI_API_KEY`
+
+### What we did instead
+
+- **Scenario cap**: `n_scenarios` in YAML (default 25) limits the pipeline to the first N personas from the scenarios file. Set to `null` to use all
+- **Seeker seed**: each repetition index (0, 1, 2…) is passed as the `seed` parameter to the seeker's API call. All candidates sharing rep 0 get the same seeker behavior, isolating variation to the supporter model only. The seed is recorded in each transcript's `seeker.seed` field
+- **Supporter left unseeded**: natural variance across repetitions is preserved — this is what we're measuring
+- **Provider-agnostic seeker**: `CloudAdapter` now takes `api_key_env` (the name of the env var, e.g. `"ANTHROPIC_API_KEY"`) instead of reading `OPENAI_API_KEY` directly. Combined with `base_url`, this supports any OpenAI-compatible provider (OpenAI, Anthropic, Groq, OpenRouter, etc.) with no code changes — just YAML config. API keys are stored in `.env` (gitignored), never in the YAML
