@@ -176,3 +176,5 @@ cython_debug/
 # GGUF models
 /models
 /adapters/adapter_testing.ipynb
+/transcripts
+/testing

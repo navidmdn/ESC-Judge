@@ -4,6 +4,8 @@
 # It replaces the HuggingFace loadl_model path entirely
 # The adapter returns raw structured data (text, token counts, latency) - No LangChain is the candidate path.
 
+import os
+import socket
 import subprocess
 import time
 import requests
@@ -16,10 +18,15 @@ class GenerationResult:
     text: str
     prompt_tokens: int
     completion_tokens: int
+    # llama.cpp native timings
     prefill_ms: float = 0.0
     predicted_ms: float = 0.0
     prefill_per_token_ms: float = 0.0
     predicted_per_token_ms: float = 0.0
+    ttft_s: float = 0.0
+    tokens_per_s: float = 0.0
+    llm_inference_s: float = 0.0
+    # wall-clock including HTTP overhead
     wall_clock_seconds: float = 0.0
     error: Optional[str] = None
 
@@ -39,6 +46,13 @@ class LlamaServerAdapter:
 
     def start(self, timeout: int = 120):
         """Launch llama-server and block until it's healthy."""
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(("127.0.0.1", self.port)) == 0:
+                raise RuntimeError(
+                    f"Port {self.port} already in use. "
+                    f"Kill the existing process: kill $(lsof -ti :{self.port})"
+                )
+
         cmd = [
             self.server_binary,
             "-m", self.model_path,
@@ -51,6 +65,7 @@ class LlamaServerAdapter:
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         self._wait_until_ready(timeout)
+        self._verify_model()
 
     def _wait_until_ready(self, timeout: int):
         deadline = time.time() + timeout
@@ -66,6 +81,23 @@ class LlamaServerAdapter:
         raise TimeoutError(
             f"llama-server failed to start within {timeout}s for {self.model_path}"
         )
+
+    def _verify_model(self):
+        """Confirm the server loaded the expected model."""
+        try:
+            r = requests.get(f"{self.base_url}/v1/models", timeout=5)
+            r.raise_for_status()
+            loaded_model = r.json()["data"][0]["id"]
+            expected = os.path.basename(self.model_path)
+            if expected not in loaded_model:
+                self.stop()
+                raise RuntimeError(
+                    f"Port {self.port} is serving '{loaded_model}', "
+                    f"not '{self.model_path}'. "
+                    f"Kill the existing process: kill $(lsof -ti :{self.port})"
+                )
+        except requests.RequestException:
+            pass
 
     def chat(self, messages: List[Dict[str, str]],
              temperature: float = 0.7, max_tokens: int = 512) -> GenerationResult:
@@ -89,14 +121,21 @@ class LlamaServerAdapter:
             usage = data.get("usage", {})
             timings = data.get("timings", {})
 
+            prefill_ms = timings.get("prompt_ms", 0.0)
+            predicted_ms = timings.get("predicted_ms", 0.0)
+            llm_inference_s = (prefill_ms + predicted_ms) / 1000.0
+
             return GenerationResult(
                 text=choice["message"]["content"],
                 prompt_tokens=usage.get("prompt_tokens", 0),
                 completion_tokens=usage.get("completion_tokens", 0),
-                prefill_ms=timings.get("prompt_ms", 0.0),
-                predicted_ms=timings.get("predicted_ms", 0.0),
+                prefill_ms=prefill_ms,
+                predicted_ms=predicted_ms,
                 prefill_per_token_ms=timings.get("prompt_per_token_ms", 0.0),
                 predicted_per_token_ms=timings.get("predicted_per_token_ms", 0.0),
+                ttft_s=timings.get("prompt_ms", 0.0) / 1000.0,
+                tokens_per_s=timings.get("predicted_per_second", 0.0),
+                llm_inference_s=llm_inference_s,
                 wall_clock_seconds=wall_clock,
             )
         except Exception as e:

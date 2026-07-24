@@ -2,7 +2,7 @@ import os
 import time
 from openai import OpenAI
 from typing import List, Dict, Optional
-from local_llama import GenerationResult
+from adapters.local_llama import GenerationResult
 
 
 class CloudAdapter:
@@ -10,6 +10,7 @@ class CloudAdapter:
     def __init__(self, model_name: str, api_key: Optional[str] = None,
                  base_url: Optional[str] = None):
         self.model_name = model_name
+        
         self.client = OpenAI(
             api_key=api_key or os.environ["OPENAI_API_KEY"],
             base_url=base_url,

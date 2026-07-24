@@ -1,0 +1,63 @@
+# ─── Provider (the model under test) ───────────────────────────
+provider_role: "data/prompts/supporter_social_companion.txt"
+opening_line: "Hey! how's it going?"
+
+# ─── Seeker (simulated help-seeker, cloud) ─────────────────────
+seeker:
+  model: "gpt-4o-mini"
+  temperature: 0.8
+  max_tokens: 512
+  template_file: "data/prompts/seeker_template.txt"
+
+# ─── Scenarios ─────────────────────────────────────────────────
+scenarios_file: "data/roles-v1.json"
+
+# ─── Generation settings ──────────────────────────────────────
+n_turns: 14
+n_repetitions: 1
+output_dir: "transcripts"
+
+# ─── Pipeline latency estimates (seconds) ─────────────────────
+# Researchers set these based on their robot's speech pipeline.
+# Used to compute estimated end-to-end latency per supporter turn.
+pipeline_estimates:
+  stt_s: 0.85
+  tts_s: .3
+
+# ─── Candidate configurations ─────────────────────────────────
+# Each entry is one model config to evaluate.
+# The harness runs them sequentially: start server → run all
+# scenarios × reps → stop server → next config.
+candidates:
+  - config_id: "Qwen3-4B-Instruct-Q4_K_M"
+    model_path: "models/Qwen3-4B-Instruct-Q4_K_M.gguf"
+    server_binary: "~/research/llama.cpp/build-metal/bin/llama-server"
+    n_gpu_layers: 99
+    n_ctx: 2048
+    temperature: 0.7
+    max_tokens: 512
+    extra_args: ["-fa", "1"]
+    port: 8080
+
+  - config_id: "Llama-3.1-8B-Instruct-Q4_K_M.gguf"
+    model_path: "models/Llama-3.1-8B-Instruct-Q4_K_M.gguf"
+    server_binary: "~/research/llama.cpp/build-metal/bin/llama-server"
+    n_gpu_layers: 99
+    n_ctx: 2048
+    temperature: 0.7
+    max_tokens: 512
+    extra_args: ["-fa", "1"]
+    port: 8081
+
+  - config_id: "Llama-3.2-3B-Instruct-Q4_K_M.gguf"
+    model_path: "models/Llama-3.2-3B-Instruct-Q4_K_M.gguf"
+    server_binary: "~/research/llama.cpp/build-metal/bin/llama-server"
+    n_gpu_layers: 99
+    n_ctx: 2048
+    temperature: 0.7
+    max_tokens: 512
+    extra_args: ["-fa", "1"]
+    port: 8082
+
+  
+  
