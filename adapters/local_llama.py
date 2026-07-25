@@ -26,6 +26,9 @@ class GenerationResult:
     ttft_s: float = 0.0
     tokens_per_s: float = 0.0
     llm_inference_s: float = 0.0
+    # KV cache: prompt_n = tokens actually prefilled, cache_n = tokens reused
+    prompt_n: int = 0
+    cache_n: int = 0
     # wall-clock including HTTP overhead
     wall_clock_seconds: float = 0.0
     error: Optional[str] = None
@@ -137,6 +140,9 @@ class LlamaServerAdapter:
             predicted_ms = timings.get("predicted_ms", 0.0)
             llm_inference_s = (prefill_ms + predicted_ms) / 1000.0
 
+            prompt_n = timings.get("prompt_n", usage.get("prompt_tokens", 0))
+            cache_n = timings.get("cache_n", 0)
+
             return GenerationResult(
                 text=choice["message"]["content"],
                 prompt_tokens=usage.get("prompt_tokens", 0),
@@ -148,6 +154,8 @@ class LlamaServerAdapter:
                 ttft_s=timings.get("prompt_ms", 0.0) / 1000.0,
                 tokens_per_s=timings.get("predicted_per_second", 0.0),
                 llm_inference_s=llm_inference_s,
+                prompt_n=prompt_n,
+                cache_n=cache_n,
                 wall_clock_seconds=wall_clock,
             )
         except Exception as e:

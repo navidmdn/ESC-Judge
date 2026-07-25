@@ -106,8 +106,13 @@ def simulate(supporter_adapter, seeker_adapter,
                     "inference_total": result.prefill_ms + result.predicted_ms,
                 },
                 "throughput": {
-                    "prefill_tokens_per_s": (result.prompt_tokens / (result.prefill_ms / 1000.0)) if result.prefill_ms > 0 else 0.0,
+                    "prefill_tokens_per_s": (result.prompt_n / (result.prefill_ms / 1000.0)) if result.prefill_ms > 0 else 0.0,
                     "decode_tokens_per_s": result.tokens_per_s,
+                },
+                "cache": {
+                    "prompt_n": result.prompt_n,
+                    "cached_tokens": result.cache_n,
+                    "cache_hit_ratio": result.cache_n / result.prompt_tokens if result.prompt_tokens > 0 else 0.0,
                 },
             })
             pipeline.append({

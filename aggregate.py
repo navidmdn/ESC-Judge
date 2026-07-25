@@ -41,7 +41,19 @@ def compute_conversation_stats(transcript: Dict, pricing: Optional[Dict] = None)
     decodes = [c["timing_ms"]["decode"] for c in llm_calls]
     inference_totals = [c["timing_ms"]["inference_total"] for c in llm_calls]
     decode_tps = [c["throughput"]["decode_tokens_per_s"] for c in llm_calls]
-    prefill_tps = [c["throughput"]["prefill_tokens_per_s"] for c in llm_calls]
+
+    prefill_tps = []
+    cache_hit_ratios = []
+    for c in llm_calls:
+        if "cache" in c:
+            prompt_n = c["cache"]["prompt_n"]
+            ttft_s = c["timing_ms"]["ttft"] / 1000.0
+            prefill_tps.append(prompt_n / ttft_s if ttft_s > 0 else 0.0)
+            cache_hit_ratios.append(c["cache"]["cache_hit_ratio"])
+        else:
+            prefill_tps.append(c["throughput"]["prefill_tokens_per_s"])
+            cache_hit_ratios.append(0.0)
+
     e2e = [p["end_to_end_latency_s"] for p in pipeline]
 
     supporter_prompt_tokens = sum(c["tokens"]["prompt"] for c in llm_calls)
@@ -74,6 +86,7 @@ def compute_conversation_stats(transcript: Dict, pricing: Optional[Dict] = None)
         "decode_tokens_per_s_mean": np.mean(decode_tps),
         "decode_tokens_per_s_p95": np.percentile(decode_tps, 95),
         "prefill_tokens_per_s_mean": np.mean(prefill_tps),
+        "cache_hit_ratio_mean": np.mean(cache_hit_ratios),
         "e2e_latency_mean_s": np.mean(e2e),
         "e2e_latency_p95_s": np.percentile(e2e, 95),
         "seeker_cost_usd": seeker_cost_usd,
@@ -95,7 +108,7 @@ def compute_candidate_rollup(conversation_stats: List[Dict]) -> Dict:
     metrics_keys = [
         "ttft_mean_ms", "decode_mean_ms", "inference_total_mean_ms",
         "decode_tokens_per_s_mean", "prefill_tokens_per_s_mean",
-        "e2e_latency_mean_s",
+        "cache_hit_ratio_mean", "e2e_latency_mean_s",
     ]
 
     rollup = {

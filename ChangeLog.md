@@ -117,3 +117,59 @@ The upstream repo runs all 100 personas with no randomness controls and is hardc
 - **Seeker seed**: each repetition index (0, 1, 2…) is passed as the `seed` parameter to the seeker's API call. All candidates sharing rep 0 get the same seeker behavior, isolating variation to the supporter model only. The seed is recorded in each transcript's `seeker.seed` field
 - **Supporter left unseeded**: natural variance across repetitions is preserved — this is what we're measuring
 - **Provider-agnostic seeker**: `CloudAdapter` now takes `api_key_env` (the name of the env var, e.g. `"ANTHROPIC_API_KEY"`) instead of reading `OPENAI_API_KEY` directly. Combined with `base_url`, this supports any OpenAI-compatible provider (OpenAI, Anthropic, Groq, OpenRouter, etc.) with no code changes — just YAML config. API keys are stored in `.env` (gitignored), never in the YAML
+
+---
+
+## Step 4: Aggregation pipeline and cost tracking
+
+**Date:** 2025-07-25
+
+### What changed
+
+| Action | File | Description |
+|--------|------|-------------|
+| Created | `aggregate.py` | Per-conversation and per-candidate aggregation with CSV output |
+| Modified | `config.yaml` | Added seeker `pricing` block (cost per 1M tokens) |
+| Modified | `run_generation.py` | Added `seeker_calls` tracking, cold start capture |
+| Modified | `adapters/local_llama.py` | Cold start warmup measurement on server start |
+
+### Why
+
+After generating conversations across multiple candidate configurations, we need to compare them quantitatively: latency distributions, throughput, token verbosity, and seeker API cost. Raw transcript JSON is not human-readable at scale.
+
+### Modification
+
+- **Aggregation pipeline** (`aggregate.py`):
+  - Reads all completed transcripts from the output directory
+  - Computes per-conversation stats: mean/p95 for TTFT, decode time, inference total, throughput, E2E latency; total supporter and seeker tokens; seeker API cost
+  - Rolls up per-candidate: mean/std/p95 across conversations for each metric
+  - Writes `reports/per_conversation.csv` and `reports/per_candidate.csv`
+  - Prints a summary comparison table to stdout
+  - Seeker cost computed from configurable pricing in YAML (`cost per 1M tokens × token count`)
+- **Seeker call tracking**: `run_generation.py` now logs `seeker_calls` (token counts per seeker turn) in each transcript's `metrics` block, enabling cost attribution
+- **Cold start warmup**: `LlamaServerAdapter.start()` sends a throwaway prompt after server health check to warm GPU caches. The cold start result is recorded in each transcript's `cold_start` field (TTFT, decode, inference total, wall clock)
+
+---
+
+## Step 5: Prefill throughput fix (KV cache correction)
+
+**Date:** 2025-07-25
+
+### What changed
+
+| Action | File | Description |
+|--------|------|-------------|
+| Modified | `adapters/local_llama.py` | Added `prompt_n` and `cache_n` fields to `GenerationResult` |
+| Modified | `run_generation.py` | Fixed `prefill_tokens_per_s` to use `prompt_n`; added `cache` block per llm_call |
+| Modified | `aggregate.py` | Backward-compatible prefill throughput recomputation; added `cache_hit_ratio_mean` |
+
+### Why
+
+The original `prefill_tokens_per_s` formula divided total prompt tokens (`usage.prompt_tokens`) by prefill time (`timings.prompt_ms`). With llama.cpp's KV prefix cache, `prompt_ms` only covers newly processed tokens while `prompt_tokens` counts the full context. The ratio inflated linearly with turn number. The metric was measuring cache hit rate, not hardware speed.
+
+### Modification
+
+- **Use `timings.prompt_n`**: llama.cpp's server returns `prompt_n` (tokens actually prefilled, not cached) and `cache_n` (tokens reused from KV cache). `GenerationResult` now captures both
+- **Corrected throughput**: `prefill_tokens_per_s = prompt_n / (prefill_ms / 1000)` — only counts work actually done
+- **Cache metrics**: each `llm_calls` entry now includes a `cache` block with `prompt_n`, `cached_tokens`, and `cache_hit_ratio` — the caching behavior is interesting data in its own right
+- **Backward compatibility**: `aggregate.py` detects old transcripts (no `cache` block) and falls back to the stored value. Old runs are not comparable to new runs on this metric

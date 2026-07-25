@@ -24,6 +24,7 @@ The candidate configurations are local LLM setups that passed Stage 1 feasibilit
 | Hardcoded prompts | File-based, config-referenced prompts |
 | No resumability | Skips already-completed conversations |
 | Flat text output | Structured JSON with per-turn metrics |
+| No aggregation or cost tracking | Aggregation pipeline with CSV output and seeker cost tracking |
 | Seeker hardcoded to OpenAI | Provider-agnostic seeker (any OpenAI-compatible API) |
 | All 100 scenarios, no determinism controls | Configurable scenario cap, seeker seed per repetition |
 
@@ -42,7 +43,7 @@ Each dimension is scored independently (separate judge call) to prevent halo bia
 ```bash
 conda create -n esc-judge python=3.11 -y
 conda activate esc-judge
-pip install requests openai python-dotenv pyyaml fire jupyter
+pip install requests openai python-dotenv pyyaml fire numpy jupyter
 ```
 
 Create a `.env` file in the project root with your provider's API key. The variable name must match the `api_key_env` field in `config.yaml`:
@@ -62,6 +63,7 @@ adapters/
   local_llama.py          # Candidate adapter — starts llama-server, talks via HTTP
   cloud.py                # Cloud adapter (seeker/judge) — any OpenAI-compatible provider
 run_generation.py         # Generation pipeline — simulate, run, resume
+aggregate.py              # Aggregation pipeline — per-conversation and per-candidate stats
 config.yaml               # Central config — candidates, seeker, prompts, estimates
 data/
   prompts/
@@ -72,6 +74,9 @@ models/                   # GGUF files (gitignored)
 transcripts/              # Generated conversations (gitignored)
   {config_id}/
     {scenario_id}_rep{N}.json
+reports/                  # Aggregation output
+  per_conversation.csv    # One row per conversation
+  per_candidate.csv       # Rolled-up stats per candidate
 ```
 
 ## Usage
@@ -84,6 +89,14 @@ python run_generation.py --config_path config.yaml
 
 The pipeline reads `config.yaml`, starts each candidate's llama-server sequentially, runs all scenarios × repetitions, and saves structured JSON transcripts. Already-completed conversations are skipped automatically.
 
+### Aggregate results
+
+```bash
+python aggregate.py --config_path config.yaml
+```
+
+Reads all completed transcripts, computes per-conversation and per-candidate statistics (mean/p95 latency, throughput, token counts, seeker API cost), and writes CSVs to `reports/`. Prints a summary comparison table to stdout.
+
 ### Configuration
 
 All settings live in `config.yaml`:
@@ -94,6 +107,7 @@ All settings live in `config.yaml`:
   - `base_url` — provider endpoint (default: `https://api.openai.com/v1`)
   - `api_key_env` — name of the env var in `.env` holding the API key (e.g., `OPENAI_API_KEY`)
   - `temperature`, `max_tokens`, `template_file`
+  - `pricing` — cost per 1M tokens (`input`, `output`) for seeker cost tracking
 - **`candidates`** — list of model configs (GGUF path, server binary, GPU layers, context size, temperature, extra args, port)
 - **`n_turns`** — conversation length (supporter + seeker turns)
 - **`n_repetitions`** — runs per scenario for variance estimation
@@ -135,11 +149,14 @@ Each repetition index (0, 1, 2…) is passed as a `seed` to the seeker API. All 
 Each transcript JSON contains:
 
 - **Model provenance**: GGUF path, server binary, extra args, GPU layers, context size
+- **Cold start**: TTFT, decode, inference total, and wall clock for the warmup call (first inference after server start)
 - **Clean transcript**: turn-by-turn `[{turn_id, role, text}]` — no metrics mixed in
 - **`metrics.llm_calls`** (supporter turns only):
   - `tokens` — prompt, completion, total
   - `timing_ms` — ttft, decode, inference_total
-  - `throughput` — prefill_tokens_per_s, decode_tokens_per_s
+  - `throughput` — prefill_tokens_per_s (using `prompt_n`, not full context), decode_tokens_per_s
+  - `cache` — prompt_n (tokens actually prefilled), cached_tokens (reused from KV cache), cache_hit_ratio
+- **`metrics.seeker_calls`** (seeker turns only): token counts per turn, used for cost computation
 - **`metrics.pipeline`** (supporter turns only): stt_s + llm_inference_s + tts_s = end_to_end_latency_s
 
 ## Requirements
