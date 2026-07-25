@@ -1,3 +1,6 @@
 requests
 openai
 jupyter
+numpy
+matplotlib
+pandas

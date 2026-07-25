@@ -39,6 +39,7 @@ def simulate(supporter_adapter, seeker_adapter,
     """
     turns = []
     llm_calls = []
+    seeker_calls = []
     pipeline = []
     supporter_history = []
     seeker_history = []
@@ -81,6 +82,16 @@ def simulate(supporter_adapter, seeker_adapter,
             "text": result.text,
         })
 
+        if cur_speaker == "seeker":
+            seeker_calls.append({
+                "turn_id": turn_idx,
+                "tokens": {
+                    "prompt": result.prompt_tokens,
+                    "completion": result.completion_tokens,
+                    "total": result.prompt_tokens + result.completion_tokens,
+                },
+            })
+
         if cur_speaker == "supporter":
             llm_calls.append({
                 "turn_id": turn_idx,
@@ -112,7 +123,7 @@ def simulate(supporter_adapter, seeker_adapter,
                 "status": "error",
                 "error_detail": result.error,
                 "turns": turns,
-                "metrics": {"llm_calls": llm_calls, "pipeline": pipeline},
+                "metrics": {"llm_calls": llm_calls, "seeker_calls": seeker_calls, "pipeline": pipeline},
             }
 
         last_utterance = result.text
@@ -120,7 +131,7 @@ def simulate(supporter_adapter, seeker_adapter,
     return {
         "status": "complete",
         "turns": turns,
-        "metrics": {"llm_calls": llm_calls, "pipeline": pipeline},
+        "metrics": {"llm_calls": llm_calls, "seeker_calls": seeker_calls, "pipeline": pipeline},
     }
 
 
@@ -195,6 +206,14 @@ def run_generation(
     )
     supporter.start()
 
+    cs = supporter.cold_start_result
+    cold_start = {
+        "ttft_ms": cs.prefill_ms,
+        "decode_ms": cs.predicted_ms,
+        "inference_total_ms": cs.prefill_ms + cs.predicted_ms,
+        "wall_clock_s": cs.wall_clock_seconds,
+    } if cs and not cs.error else None
+
     seeker = CloudAdapter(
         model_name=seeker_model_name,
         base_url=seeker_base_url,
@@ -261,6 +280,7 @@ def run_generation(
                     },
                     "provider_role": supporter_system_prompt_file,
                     "n_turns": n_turns,
+                    "cold_start": cold_start,
                     "status": result["status"],
                     "turns": result["turns"],
                     "metrics": result["metrics"],

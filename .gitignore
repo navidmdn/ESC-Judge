@@ -178,3 +178,5 @@ cython_debug/
 /adapters/adapter_testing.ipynb
 /transcripts
 /testing
+/reports
+.DS_Store

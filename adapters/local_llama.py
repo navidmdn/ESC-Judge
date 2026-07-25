@@ -43,6 +43,7 @@ class LlamaServerAdapter:
         self.n_gpu_layers = n_gpu_layers
         self.extra_args = extra_args or []
         self.process: Optional[subprocess.Popen] = None
+        self.cold_start_result: Optional[GenerationResult] = None
 
     def start(self, timeout: int = 120):
         """Launch llama-server and block until it's healthy."""
@@ -66,6 +67,7 @@ class LlamaServerAdapter:
         )
         self._wait_until_ready(timeout)
         self._verify_model()
+        self._warmup()
 
     def _wait_until_ready(self, timeout: int):
         deadline = time.time() + timeout
@@ -98,6 +100,16 @@ class LlamaServerAdapter:
                 )
         except requests.RequestException:
             pass
+
+    def _warmup(self):
+        """Send a throwaway prompt to measure cold start and warm the cache."""
+        self.cold_start_result = self.chat(
+            messages=[
+                {"role": "user", "content": "Cold start setup, ignore this message."}
+            ],
+            temperature=0.0,
+            max_tokens=16,
+        )
 
     def chat(self, messages: List[Dict[str, str]],
              temperature: float = 0.7, max_tokens: int = 512) -> GenerationResult:
